@@ -1,4 +1,4 @@
-import express, { Router, Request, Response} from 'express';
+import express, { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../prisma';
 
 const router: Router = express.Router();
@@ -28,12 +28,12 @@ const router: Router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await prisma.user.findMany();
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error: unknown) {
+    next(error);
   }
 });
 
@@ -69,7 +69,7 @@ router.get('/', async (req: Request, res: Response) => {
  *       400:
  *         description: Bad request
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, email } = req.body;
     const user = await prisma.user.create({
@@ -77,7 +77,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
     res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({ error: 'Bad request' });
+    next(error);
   }
 });
 
