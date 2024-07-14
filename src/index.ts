@@ -6,61 +6,76 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc, { Options } from 'swagger-jsdoc';
 
 import userRoutes from './routes/userRoutes';
+import healthRouter from './routes/healthRoute';
 import prisma from './prisma';
+import errorHandling from './middlewares/errors';
 
-const PORT = process.env.PORT || 8000;
-const app: Application = express();
+class Server {
+  private app: Application;
+  private port: number | string;
+  private swaggerOptions: Options;
 
-// Swagger setup
-const swaggerOptions: Options = {
-  swaggerDefinition: require('../swagger.json'),
-  apis: ['./routes/*.js'], // Path to your route files
-};
+  constructor(port: number) {
+    this.app = express();
+    this.port = port;
+    this.swaggerOptions = {
+      swaggerDefinition: require('../swagger.json'),
+      apis: ['./routes/*.js'],
+    };
 
-const swaggerDocs = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+    this.initializeMiddlewares();
+    this.initializeSwagger();
+    this.initializeRoutes();
+    this.initializeErrorHandling();
+    this.handleShutdown();
+  }
 
-// Middleware
-app.use(express.json());
-app.use(cors());
-app.use(helmet());
-app.use(morgan('dev'));
+  private initializeMiddlewares() {
+    // Middleware
+    this.app.use(express.json());
+    this.app.use(cors());
+    this.app.use(helmet());
+    this.app.use(morgan('dev'));
+  }
 
-//  Routes
-app.use('/api/users', userRoutes);
+  private initializeSwagger() {
+    const swaggerDocs = swaggerJsdoc(this.swaggerOptions);
+    this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+  }
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: API Health Check
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: documentation about current API
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               items:
- *                 $ref: '#/components/schemas/Health'
- *       500:
- *         description: Internal server error
- */
-app.get('/', (req, res) => {
-  res.status(200).json({
-    version: '0.0.1',
-    status: 'ok',
-  });
-});
+  private initializeRoutes() {
+    //  Routes
+    this.app.use('/', healthRouter);
+    this.app.use('/api/users', userRoutes);
+  }
 
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+  private handleShutdown() {
+    process.on('SIGINT', async () => {
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+  }
 
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+  private initializeErrorHandling() {
+    this.app.use(errorHandling);
+  }
 
-export default app;
+  public listen() {
+    this.app.listen(this.port, () => {
+      console.log(`Server is running on ${this.port}`);
+    });
+  }
+
+  public getApp(): Application {
+    return this.app;
+  }
+}
+
+const port =
+  process.env.NODE_ENV === 'test' ? 8080 : Number(process.env.PORT) || 8000;
+
+const server = new Server(port);
+
+server.listen();
+
+export default Server;

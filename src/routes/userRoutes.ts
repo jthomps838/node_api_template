@@ -1,5 +1,6 @@
-import express, { Router, Request, Response, NextFunction } from 'express';
-import prisma from '../prisma';
+import express, { Router } from 'express';
+
+import UserController from '../controllers/userController';
 
 const router: Router = express.Router();
 
@@ -28,14 +29,7 @@ const router: Router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const users = await prisma.user.findMany();
-    res.json(users);
-  } catch (error: unknown) {
-    next(error);
-  }
-});
+router.get('/', UserController.getUsers);
 
 /**
  * @swagger
@@ -69,16 +63,6 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  *       400:
  *         description: Bad request
  */
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { name, email } = req.body;
-    const user = await prisma.user.create({
-      data: { name, email },
-    });
-    res.status(201).json(user);
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/', UserController.createUser);
 
 export default router;

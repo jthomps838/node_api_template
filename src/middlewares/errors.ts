@@ -6,11 +6,10 @@ interface CustomError extends Error {
 
 const errorHandling: ErrorRequestHandler = (
   err: CustomError,
-  req: Request,
+  _: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  console.error(err.stack);
   res.status(err.status || 500).json({
     error: {
       message: err.message || 'Internal server error',
