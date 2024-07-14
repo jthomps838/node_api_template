@@ -71,11 +71,12 @@ class Server {
   }
 }
 
-const port =
-  process.env.NODE_ENV === 'test' ? 8080 : Number(process.env.PORT) || 8000;
+if (process.env.NODE_ENV !== 'test') {
+  const port = Number(process.env.PORT) || 8000;
 
-const server = new Server(port);
+  const server = new Server(port);
 
-server.listen();
+  server.listen();
+}
 
 export default Server;
